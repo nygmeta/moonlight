@@ -1,0 +1,392 @@
+<html><head><base href="." />
+<meta charset="UTF-8">
+<title>Kazakhstan Nuclear Test Sites Visualization - Historical Impact</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/topojson@3"></script>
+<style>
+body {
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #ffffff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 10px;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.subtitle {
+    text-align: center;
+    color: #ccc;
+    margin-bottom: 30px;
+    font-size: 1.1em;
+}
+
+.art-link {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.art-link a {
+    color: #ff5733;
+    text-decoration: none;
+    font-size: 1.3em;
+    font-weight: bold;
+    transition: color 0.3s ease;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.art-link a:hover {
+    color: #ff8c66;
+    text-decoration: underline;
+}
+
+.map-container {
+    position: relative;
+    background: linear-gradient(45deg, #2a2a2a 0%, #323232 100%);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    border: 1px solid #444;
+    min-height: 600px;
+}
+
+.historical-image {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    width: 200px;
+    height: 150px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+    border: 2px solid #555;
+    opacity: 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    object-fit: cover;
+}
+
+.historical-image.fade-out {
+    opacity: 0;
+}
+
+.historical-image.fade-in {
+    opacity: 0.8;
+}
+
+.historical-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+}
+
+.story-panel {
+    position: absolute;
+    right: 30px;
+    top: 200px;
+    width: 300px;
+    background: rgba(0,0,0,0.9);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #555;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    font-size: 0.9em;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.legend {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(0,0,0,0.85);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #555;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.pulse {
+    fill: #ff5733;
+    fill-opacity: 0.4;
+    animation: pulse 3s ease-out infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.1);
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.9);
+    padding: 15px;
+    border-radius: 8px;
+    pointer-events: none;
+    display: none;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: 1px solid #555;
+    max-width: 250px;
+}
+
+.info-box {
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    background: rgba(0,0,0,0.85);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #555;
+    max-width: 300px;
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+.site-marker {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.site-marker:hover {
+    fill: #ff8c66;
+    transform: scale(1.2);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Nuclear Test Sites in Kazakhstan</h1>
+    <div class="subtitle">A Historical Timeline: 1949-1989</div>
+    <div class="art-link">
+        <a href="https://www.theatomproject.org/en/about/nuclear-weapons-testing-effects/the-art-of-truth/" target="_blank">Silent Killers Art</a>
+    </div>
+    <div class="map-container">
+        <div id="map"></div>
+        <img class="historical-image fade-out" 
+             src="https://preview.redd.it/aupk35xc97081.jpg?auto=webp&s=c242d1d90f332775e3fefa076c90214c7090bf12"
+             alt="Historical photograph of nuclear test explosion in Kazakhstan, showing mushroom cloud rising above desert landscape, black and white archive photo"
+             width="200" height="150">
+        <div class="story-panel"></div>
+        <div class="tooltip"></div>
+        <div class="info-box">
+            Click on test sites to reveal their historical stories and images.
+        </div>
+        <div class="legend">
+            <svg width="220" height="120">
+                <g transform="translate(10,10)">
+                    <circle cx="10" cy="10" r="6" fill="#ff5733" class="site-marker"/>
+                    <text x="25" y="15" fill="white">Nuclear Test Site</text>
+                    <circle cx="10" cy="40" r="10" class="pulse" fill="#ff5733"/>
+                    <text x="25" y="45" fill="white">Major Testing Area</text>
+                    <text x="10" y="75" fill="#999" font-size="12">Size indicates number of tests</text>
+                </g>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<script>
+const width = 1000;
+const height = 600;
+
+const svg = d3.select("#map")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+const projection = d3.geoMercator()
+    .center([65, 48])
+    .scale(1200)
+    .translate([width / 2, height / 2]);
+
+const path = d3.geoPath()
+    .projection(projection);
+
+const testSites = [
+    {
+        name: "Semipalatinsk Test Site",
+        lat: 50.07,
+        lon: 78.43,
+        tests: 456,
+        details: "Primary Soviet nuclear testing ground. Underground and atmospheric tests conducted between 1949-1989.",
+        story: `The Semipalatinsk Test Site, known as "The Polygon," was the primary testing venue for the Soviet Union's nuclear weapons program. The first Soviet nuclear weapon test, Operation First Lightning, was conducted here on August 29, 1949. Over four decades, local populations suffered severe health effects, including increased cancer rates and birth defects. The site was finally closed in 1991 after Kazakhstan's independence.`,
+        images: [
+            {
+                url: "https://preview.redd.it/aupk35xc97081.jpg?auto=webp&s=c242d1d90f332775e3fefa076c90214c7090bf12",
+                caption: "Historical nuclear test explosion at Semipalatinsk"
+            },
+            {
+                url: "https://i.natgeofe.com/n/3478def8-d199-4a38-8a52-51a715e2be8f/23-nuclear-ghosts-PHM_Polygon_1008903.jpg?w=2560&h=3840",
+                caption: "Modern view of the testing grounds"
+            },
+            {
+                url: "https://i.natgeofe.com/n/8e4cefcb-f20b-4ae3-bd1c-7edd146e984a/21-nuclear-ghosts-PHM_Polygon_1005546.jpg?w=2560&h=1706",
+                caption: "Aftermath of nuclear testing at the Polygon site"
+            },
+            {
+                url: "https://www.theatomproject.org/wp-content/themes/atomproject/images/karipbek-portfolio-page_63.jpg",
+                caption: "Impact of nuclear testing on local communities - Silent Killers Art"
+            }
+        ]
+    },
+    {
+        name: "Azgir Test Site",
+        lat: 47.85,
+        lon: 48.03,
+        tests: 17,
+        details: "Used for peaceful nuclear explosions aimed at creating underground cavities.",
+        story: `The Azgir site was used for a series of peaceful nuclear explosions between 1966 and 1979. The Soviet program aimed to create underground cavities for gas storage and mineral extraction. These tests left behind a network of radioactive caverns, some of which partially collapsed, causing environmental concerns that persist to this day.`,
+        images: [
+            {
+                url: "https://preview.redd.it/aupk35xc97081.jpg?auto=webp&s=c242d1d90f332775e3fefa076c90214c7090bf12",
+                caption: "Historical nuclear test explosion"
+            }
+        ]
+    },
+    {
+        name: "Mangystau Test Site",
+        lat: 43.83,
+        lon: 54.38,
+        tests: 7,
+        details: "Location of several peaceful nuclear explosions for geological purposes.",
+        story: `The Mangystau region hosted several peaceful nuclear explosions as part of Soviet attempts to use nuclear power for industrial purposes. These tests were conducted to study the possibility of using nuclear explosions for the creation of water reservoirs and mineral extraction. The area still shows elevated levels of radiation in certain locations.`,
+        images: [
+            {
+                url: "https://preview.redd.it/aupk35xc97081.jpg?auto=webp&s=c242d1d90f332775e3fefa076c90214c7090bf12",
+                caption: "Historical nuclear test explosion"
+            }
+        ]
+    }
+];
+
+function showSiteInfo(site) {
+    const imageContainer = document.querySelector('.historical-image');
+    const storyPanel = document.querySelector('.story-panel');
+    
+    // Generate truly random index each time
+    let currentImageIndex = Math.floor(Math.random() * site.images.length);
+    
+    function updateImage() {
+        imageContainer.classList.remove('fade-in');
+        imageContainer.classList.add('fade-out');
+        
+        setTimeout(() => {
+            imageContainer.src = site.images[currentImageIndex].url;
+            imageContainer.classList.remove('fade-out');
+            imageContainer.classList.add('fade-in');
+            // Update caption
+            document.querySelector('.caption').textContent = site.images[currentImageIndex].caption;
+        }, 300);
+    }
+    
+    // Initial image update
+    updateImage();
+    
+    // Add click handler to cycle through images
+    imageContainer.onclick = () => {
+        currentImageIndex = (currentImageIndex + 1) % site.images.length;
+        updateImage();
+    };
+    
+    // Update story panel
+    storyPanel.innerHTML = `
+        <h3>${site.name}</h3>
+        <p>${site.story}</p>
+        <p><em>Click image to cycle through photos</em></p>
+        <p class="caption" style="color: #999; font-size: 0.8em;">${site.images[currentImageIndex].caption}</p>
+    `;
+    storyPanel.style.opacity = "1";
+}
+
+d3.json("https://raw.githubusercontent.com/johan/world.geo.json/master/countries/KAZ.geo.json")
+    .then(function(kazakhstan) {
+        const gradient = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "countryGradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "100%");
+
+        gradient.append("stop")
+            .attr("offset", "0%")
+            .attr("style", "stop-color:#3a3a3a;stop-opacity:1");
+
+        gradient.append("stop")
+            .attr("offset", "100%")
+            .attr("style", "stop-color:#4a4a4a;stop-opacity:1");
+
+        svg.append("path")
+            .datum(kazakhstan)
+            .attr("d", path)
+            .attr("fill", "url(#countryGradient)")
+            .attr("stroke", "#666")
+            .attr("stroke-width", 1.5);
+
+        const sites = svg.selectAll("g.site")
+            .data(testSites)
+            .enter()
+            .append("g")
+            .attr("class", "site")
+            .attr("transform", d => `translate(${projection([d.lon, d.lat])})`);
+
+        sites.append("circle")
+            .attr("class", "pulse")
+            .attr("r", d => Math.sqrt(d.tests) * 2);
+
+        sites.append("circle")
+            .attr("class", "site-marker")
+            .attr("r", d => 5 + Math.sqrt(d.tests)/4)
+            .attr("fill", "#ff5733")
+            .on("click", (event, d) => showSiteInfo(d))
+            .on("mouseover", function(event, d) {
+                const tooltip = d3.select(".tooltip");
+                tooltip.style("display", "block")
+                    .html(`
+                        <strong>${d.name}</strong><br>
+                        Tests conducted: ${d.tests}<br><br>
+                        ${d.details}
+                    `)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 10) + "px");
+                
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("fill", "#ff8c66");
+            })
+            .on("mouseout", function() {
+                d3.select(".tooltip").style("display", "none");
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .attr("fill", "#ff5733");
+            });
+    });
+</script>
+
+</body>
+</html>
